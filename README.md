@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Media Editor - Platform Pengeditan Media
 
-## Getting Started
+**Media Editor** adalah platform canggih yang memungkinkan pengguna untuk mengedit media seperti gambar dan video secara mudah, cepat, dan efisien. Kini, dengan fitur tambahan **Shortlink**, pengguna dapat dengan mudah berbagi hasil editan mereka melalui tautan pendek.
 
-First, run the development server:
+## Fitur Utama
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Cut Video**
+- **Shortlink**
+- **Image Prosesing:** 
+    - Webp to png
+    - Image to text
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Teknologi yang Digunakan
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend:**
+  - Framework: Next Js
+  - Styling: Tailwind CSS & radix-ui
+  - Library tambahan: Axios untuk integrasi API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Backend:**
+  - Framework: Express.js
+  - DB: Neon (postgre)
 
-## Learn More
+- **Deployment:**
+  - Railway
 
-To learn more about Next.js, take a look at the following resources:
+## Instalasi dan Penggunaan
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Prasyarat
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Node.js (versi 18 ke atas)
+- NPM atau Yarn
+- Akun Google Cloud untuk API
+- Akses ke Bitly API untuk fitur shortlink
 
-## Deploy on Vercel
+### Langkah Instalasi
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Clone repositori ini:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   git clone https://github.com/username/media-editor.git
+   cd media-editor
+
+## Kontribusi
+
+Kami menyambut kontribusi untuk meningkatkan Media Editor. Jika Anda ingin berkontribusi, silakan fork repositori ini dan kirim pull request Anda.
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
