@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { VideoEditor } from "@/components/video-editor"
 import { ImageProcessor } from "@/components/image-processor"
+import { ShortURL } from '@/components/short-url';
 
 export function Editor() {
     return (
@@ -27,6 +28,7 @@ export function Editor() {
                     <TabsList className="w-full flex flex-col sm:flex-row mb-6 bg-card/50 backdrop-blur-sm rounded-xl p-1.5">
                         <TabsTrigger value="video">Video Editor</TabsTrigger>
                         <TabsTrigger value="image">Image Processing</TabsTrigger>
+                        <TabsTrigger value="short-link">Short Link</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="video">
@@ -35,6 +37,10 @@ export function Editor() {
 
                     <TabsContent value="image">
                         <ImageProcessor />
+                    </TabsContent>
+
+                    <TabsContent value="short-link">
+                        <ShortURL />
                     </TabsContent>
                 </Tabs>
             </div>
