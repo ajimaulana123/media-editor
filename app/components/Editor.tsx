@@ -2,14 +2,35 @@
 "use client"
 
 import React from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { VideoEditor } from "@/components/video-editor"
 import { ImageProcessor } from "@/components/image-processor"
-import { ShortURL } from '@/components/short-url';
+import { ShortURL } from '@/components/short-url'
 import { PDFMerger } from './pdf-merger'
+import { TextEditor } from './text-editor'
+import { ThemeToggle } from "@/components/theme-toggle"
+import { motion } from "framer-motion"
+import { Card } from "@/components/ui/card"
+import { 
+    Video, 
+    Image, 
+    Link2, 
+    FileText, 
+    Type 
+} from "lucide-react"
+
+const features = [
+    { id: 'video', title: 'Video Editor', component: VideoEditor, icon: <Video className="w-6 h-6" /> },
+    { id: 'image', title: 'Image Processing', component: ImageProcessor, icon: <Image className="w-6 h-6" /> },
+    { id: 'short-link', title: 'Short Link', component: ShortURL, icon: <Link2 className="w-6 h-6" /> },
+    { id: 'pdf-merger', title: 'PDF Merger', component: PDFMerger, icon: <FileText className="w-6 h-6" /> },
+    { id: 'text-editor', title: 'Text Editor', component: TextEditor, icon: <Type className="w-6 h-6" /> },
+]
 
 export function Editor() {
+    const [activeFeature, setActiveFeature] = React.useState('video')
+
+    const ActiveComponent = features.find(f => f.id === activeFeature)?.component
+
     return (
         <main className="min-h-screen relative
             bg-gradient-to-br from-background via-background/95 to-muted/30
@@ -25,30 +46,42 @@ export function Editor() {
                     Media Editor
                 </h1>
 
-                <Tabs defaultValue="video" className="w-full">
-                    <TabsList className="w-full flex flex-col sm:flex-row my-14 lg:mb-12 bg-card/50 backdrop-blur-sm rounded-xl p-1.5">
-                        <TabsTrigger value="video">Video Editor</TabsTrigger>
-                        <TabsTrigger value="image">Image Processing</TabsTrigger>
-                        <TabsTrigger value="short-link">Short Link</TabsTrigger>
-                        <TabsTrigger value="pdf-merger">PDF Merger</TabsTrigger>
-                    </TabsList>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-8">
+                    {features.map((feature, index) => (
+                        <motion.div
+                            key={feature.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                        >
+                            <Card
+                                className={`
+                                    p-4 cursor-pointer transition-all duration-300
+                                    hover:scale-105 hover:shadow-lg
+                                    ${activeFeature === feature.id 
+                                        ? 'bg-primary/10 border-primary/50' 
+                                        : 'hover:bg-muted/50'
+                                    }
+                                `}
+                                onClick={() => setActiveFeature(feature.id)}
+                            >
+                                <div className="flex flex-col items-center space-y-2 text-center">
+                                    {feature.icon}
+                                    <span className="text-sm font-medium">{feature.title}</span>
+                                </div>
+                            </Card>
+                        </motion.div>
+                    ))}
+                </div>
 
-                    <TabsContent value="video">
-                        <VideoEditor />
-                    </TabsContent>
-
-                    <TabsContent value="image">
-                        <ImageProcessor />
-                    </TabsContent>
-
-                    <TabsContent value="short-link">
-                        <ShortURL />
-                    </TabsContent>
-
-                    <TabsContent value="pdf-merger">
-                        <PDFMerger />
-                    </TabsContent>
-                </Tabs>
+                <motion.div
+                    key={activeFeature}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    {ActiveComponent && <ActiveComponent />}
+                </motion.div>
             </div>
         </main>
     )
