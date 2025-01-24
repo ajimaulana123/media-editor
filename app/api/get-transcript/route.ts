@@ -108,56 +108,122 @@ function detectAndFormatCurrency(text: string, targetCurrency: 'USD' | 'IDR'): {
 // Main handler
 export async function POST(request: Request) {
     try {
-        // Validate request
-        const body = await request.json()
+        // Add CORS headers for production
+        if (process.env.NODE_ENV === 'production') {
+            const origin = request.headers.get('origin')
+            if (origin) {
+                const headers = {
+                    'Access-Control-Allow-Origin': origin,
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                }
+                
+                // Handle preflight requests
+                if (request.method === 'OPTIONS') {
+                    return new NextResponse(null, { headers, status: 200 })
+                }
+            }
+        }
+
+        // Validate request body
+        const body = await request.json().catch(() => ({}))
+        if (!body.videoUrl) {
+            return NextResponse.json({
+                success: false,
+                error: 'Missing video URL',
+                details: 'Please provide a valid YouTube video URL'
+            }, { status: 400 })
+        }
+
         const { videoUrl, formatCurrency: shouldFormatCurrency, targetCurrency } = 
             requestSchema.parse(body)
 
-        // Get transcript
+        // Get transcript with error handling
         const videoId = extractVideoId(videoUrl)
-        const transcript = await YoutubeTranscript.fetchTranscript(videoId)
+        let transcript
+        try {
+            transcript = await YoutubeTranscript.fetchTranscript(videoId)
+            if (!transcript || transcript.length === 0) {
+                throw new Error('No transcript available for this video')
+            }
+        } catch (transcriptError) {
+            console.error('Transcript fetch error:', transcriptError)
+            return NextResponse.json({
+                success: false,
+                error: 'Failed to fetch transcript',
+                details: transcriptError instanceof Error ? 
+                    transcriptError.message : 
+                    'Video might not have captions or might be unavailable'
+            }, { status: 404 })
+        }
 
-        // Process transcript
+        // Process transcript with safety checks
         const formattedTranscript = transcript.map((item: TranscriptResponse, index) => {
-            const startTime = item.offset || item.start || index * (item.duration || 0)
-            const { formattedText, hasChanges } = shouldFormatCurrency ? 
-                detectAndFormatCurrency(item.text, targetCurrency) : 
-                { formattedText: item.text, hasChanges: false }
+            try {
+                const startTime = item.offset || item.start || index * (item.duration || 0)
+                const { formattedText, hasChanges } = shouldFormatCurrency ? 
+                    detectAndFormatCurrency(item.text, targetCurrency) : 
+                    { formattedText: item.text, hasChanges: false }
 
-            return {
-                text: formattedText,
-                start: formatTime(startTime),
-                duration: item.duration,
-                offset: startTime,
-                ...(hasChanges && { originalText: item.text })
+                return {
+                    text: formattedText || item.text,
+                    start: formatTime(startTime),
+                    duration: item.duration || 0,
+                    offset: startTime,
+                    ...(hasChanges && { originalText: item.text })
+                }
+            } catch (itemError) {
+                console.error('Item processing error:', itemError)
+                return {
+                    text: item.text,
+                    start: '00:00',
+                    duration: 0,
+                    offset: 0
+                }
             }
         })
 
         // Validate and return response
-        const response = responseSchema.parse({
-            success: true,
-            transcript: formattedTranscript,
-            videoId,
-            metadata: {
-                processedAt: new Date().toISOString(),
-                currencyFormatted: shouldFormatCurrency,
-                targetCurrency
-            }
-        })
+        try {
+            const response = responseSchema.parse({
+                success: true,
+                transcript: formattedTranscript,
+                videoId,
+                metadata: {
+                    processedAt: new Date().toISOString(),
+                    currencyFormatted: shouldFormatCurrency,
+                    targetCurrency
+                }
+            })
 
-        return NextResponse.json(response)
+            return NextResponse.json(response)
+        } catch (validationError) {
+            console.error('Response validation error:', validationError)
+            return NextResponse.json({
+                success: false,
+                error: 'Internal processing error',
+                details: 'Failed to format response data'
+            }, { status: 500 })
+        }
 
     } catch (error) {
-        console.error('Error:', error)
-        return NextResponse.json(
-            {
+        console.error('General error:', error)
+        
+        // Handle different types of errors
+        if (error instanceof z.ZodError) {
+            return NextResponse.json({
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-                details: error instanceof z.ZodError ? 
-                    error.errors.map(e => e.message).join(', ') : 
-                    'Failed to process request'
-            },
-            { status: error instanceof z.ZodError ? 400 : 500 }
-        )
+                error: 'Invalid request format',
+                details: error.errors.map(e => e.message).join(', ')
+            }, { status: 400 })
+        }
+
+        return NextResponse.json({
+            success: false,
+            error: 'Server error',
+            details: process.env.NODE_ENV === 'development' ? 
+                (error instanceof Error ? error.message : 'Unknown error') : 
+                'An unexpected error occurred'
+        }, { status: 500 })
     }
 } 
