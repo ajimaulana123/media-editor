@@ -12,9 +12,17 @@ interface TranscriptResponse {
 
 // Validation Schemas
 const requestSchema = z.object({
-    videoUrl: z.string().url('Invalid URL format'),
+    videoUrl: z.string()
+        .min(1, 'Please enter a YouTube URL')
+        .url('Please enter a valid URL')
+        .refine(
+            (url) => url.includes('youtube.com/') || url.includes('youtu.be/'),
+            'Please enter a valid YouTube URL'
+        ),
     formatCurrency: z.boolean().optional().default(true),
-    targetCurrency: z.enum(['USD', 'IDR']).optional().default('IDR')
+    targetCurrency: z.enum(['USD', 'IDR'], {
+        errorMap: () => ({ message: 'Currency must be either USD or IDR' })
+    }).optional().default('IDR')
 })
 
 const transcriptItemSchema = z.object({
@@ -118,42 +126,75 @@ export async function POST(request: Request) {
                     'Access-Control-Allow-Headers': 'Content-Type'
                 }
                 
-                // Handle preflight requests
                 if (request.method === 'OPTIONS') {
                     return new NextResponse(null, { headers, status: 200 })
                 }
             }
         }
 
-        // Validate request body
+        // Parse and validate request body
         const body = await request.json().catch(() => ({}))
         if (!body.videoUrl) {
             return NextResponse.json({
                 success: false,
-                error: 'Missing video URL',
-                details: 'Please provide a valid YouTube video URL'
+                error: 'Missing YouTube URL',
+                details: 'Please paste a YouTube video URL to get its transcript',
+                code: 'MISSING_URL'
             }, { status: 400 })
         }
 
-        const { videoUrl, formatCurrency: shouldFormatCurrency, targetCurrency } = 
-            requestSchema.parse(body)
+        let validatedData;
+        try {
+            validatedData = requestSchema.parse(body)
+        } catch (validationError) {
+            if (validationError instanceof z.ZodError) {
+                const errorMessage = validationError.errors[0]?.message || 'Invalid input'
+                return NextResponse.json({
+                    success: false,
+                    error: 'Invalid Input',
+                    details: errorMessage,
+                    code: 'VALIDATION_ERROR',
+                    fields: validationError.errors.map(e => ({
+                        field: e.path.join('.'),
+                        message: e.message
+                    }))
+                }, { status: 400 })
+            }
+            throw validationError
+        }
 
-        // Get transcript with error handling
+        const { videoUrl, formatCurrency: shouldFormatCurrency, targetCurrency } = validatedData
+
+        // Get transcript
         const videoId = extractVideoId(videoUrl)
         let transcript
         try {
             transcript = await YoutubeTranscript.fetchTranscript(videoId)
             if (!transcript || transcript.length === 0) {
-                throw new Error('No transcript available for this video')
+                return NextResponse.json({
+                    success: false,
+                    error: 'No Transcript Available',
+                    details: 'This video does not have captions or subtitles available',
+                    code: 'NO_TRANSCRIPT',
+                    suggestions: [
+                        'Try another video',
+                        'Check if the video has closed captions enabled',
+                        'The video might be private or unavailable'
+                    ]
+                }, { status: 404 })
             }
         } catch (transcriptError) {
             console.error('Transcript fetch error:', transcriptError)
             return NextResponse.json({
                 success: false,
-                error: 'Failed to fetch transcript',
-                details: transcriptError instanceof Error ? 
-                    transcriptError.message : 
-                    'Video might not have captions or might be unavailable'
+                error: 'Cannot Get Transcript',
+                details: 'Unable to fetch video transcript',
+                code: 'FETCH_ERROR',
+                suggestions: [
+                    'Make sure the video URL is correct',
+                    'The video might be private or unavailable',
+                    'Try again in a few moments'
+                ]
             }, { status: 404 })
         }
 
@@ -209,21 +250,18 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error('General error:', error)
         
-        // Handle different types of errors
-        if (error instanceof z.ZodError) {
-            return NextResponse.json({
-                success: false,
-                error: 'Invalid request format',
-                details: error.errors.map(e => e.message).join(', ')
-            }, { status: 400 })
-        }
-
         return NextResponse.json({
             success: false,
-            error: 'Server error',
+            error: 'Something Went Wrong',
             details: process.env.NODE_ENV === 'development' ? 
                 (error instanceof Error ? error.message : 'Unknown error') : 
-                'An unexpected error occurred'
+                'We encountered an issue while processing your request',
+            code: 'INTERNAL_ERROR',
+            suggestions: [
+                'Please try again',
+                'Make sure you\'re using a valid YouTube URL',
+                'If the problem persists, try again later'
+            ]
         }, { status: 500 })
     }
 } 
