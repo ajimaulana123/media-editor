@@ -113,6 +113,22 @@ function detectAndFormatCurrency(text: string, targetCurrency: 'USD' | 'IDR'): {
     return { formattedText, hasChanges }
 }
 
+async function tryGetTranscript(videoId: string) {
+    try {
+        return await YoutubeTranscript.fetchTranscript(videoId)
+    } catch {
+        try {
+            return await YoutubeTranscript.fetchTranscript(videoId, {
+                lang: 'id'
+            })
+        } catch {
+            return await YoutubeTranscript.fetchTranscript(videoId, {
+                lang: 'en'
+            })
+        }
+    }
+}
+
 // Main handler
 export async function POST(request: Request) {
     try {
@@ -165,37 +181,54 @@ export async function POST(request: Request) {
 
         const { videoUrl, formatCurrency: shouldFormatCurrency, targetCurrency } = validatedData
 
-        // Get transcript
+        // Get transcript with fallback
         const videoId = extractVideoId(videoUrl)
         let transcript
         try {
-            transcript = await YoutubeTranscript.fetchTranscript(videoId)
+            transcript = await tryGetTranscript(videoId)
+            
             if (!transcript || transcript.length === 0) {
                 return NextResponse.json({
                     success: false,
-                    error: 'No Transcript Available',
-                    details: 'This video does not have captions or subtitles available',
+                    error: 'Transcript Not Found',
+                    details: 'Could not find any captions for this video',
                     code: 'NO_TRANSCRIPT',
                     suggestions: [
-                        'Try another video',
-                        'Check if the video has closed captions enabled',
-                        'The video might be private or unavailable'
-                    ]
+                        'Video mungkin belum memiliki terjemahan otomatis',
+                        'Tunggu beberapa saat, YouTube sedang memproses caption',
+                        'Coba video lain yang memiliki caption'
+                    ],
+                    videoId,
+                    debug: {
+                        url: videoUrl,
+                        timestamp: new Date().toISOString()
+                    }
                 }, { status: 404 })
             }
         } catch (transcriptError) {
-            console.error('Transcript fetch error:', transcriptError)
+            console.error('Detailed transcript error:', {
+                error: transcriptError,
+                videoId,
+                url: videoUrl,
+                timestamp: new Date().toISOString()
+            })
+            
             return NextResponse.json({
                 success: false,
-                error: 'Cannot Get Transcript',
-                details: 'Unable to fetch video transcript',
-                code: 'FETCH_ERROR',
+                error: 'Caption Processing Error',
+                details: 'YouTube sedang memproses caption untuk video ini',
+                code: 'PROCESSING_ERROR',
                 suggestions: [
-                    'Make sure the video URL is correct',
-                    'The video might be private or unavailable',
-                    'Try again in a few moments'
-                ]
-            }, { status: 404 })
+                    'Tunggu beberapa menit dan coba lagi',
+                    'Video baru diupload mungkin butuh waktu untuk generate caption',
+                    'Pastikan video tidak private atau membatasi caption'
+                ],
+                videoId,
+                debug: process.env.NODE_ENV === 'development' ? {
+                    error: transcriptError instanceof Error ? transcriptError.message : 'Unknown error',
+                    url: videoUrl
+                } : undefined
+            }, { status: 503 }) // Use 503 to indicate service temporarily unavailable
         }
 
         // Process transcript with safety checks
