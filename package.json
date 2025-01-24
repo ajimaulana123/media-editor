@@ -13,11 +13,14 @@
     "@ffmpeg/core": "0.12.4",
     "@ffmpeg/ffmpeg": "0.12.7",
     "@ffmpeg/util": "0.12.1",
+    "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-scroll-area": "^1.2.2",
     "@radix-ui/react-select": "^2.1.5",
     "@radix-ui/react-separator": "^1.1.1",
     "@radix-ui/react-slider": "^1.2.2",
     "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
     "class-variance-authority": "^0.7.1",
@@ -33,7 +36,9 @@
     "react-dom": "^18",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "tesseract.js": "^5.1.1"
+    "tesseract.js": "^5.1.1",
+    "youtube-transcript": "^1.2.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^20",

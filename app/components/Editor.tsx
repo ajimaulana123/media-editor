@@ -19,6 +19,7 @@ import {
     Wand2
 } from "lucide-react"
 import { TextToImage } from './text-to-image'
+import { VideoTranscript } from './video-transcript'
 
 const features = [
     { id: 'video', title: 'Video Editor', component: VideoEditor, icon: <Video className="w-6 h-6" aria-label="Video editor icon" /> },
@@ -27,6 +28,7 @@ const features = [
     { id: 'pdf-merger', title: 'PDF Merger', component: PDFMerger, icon: <FileText className="w-6 h-6" aria-label="PDF merger icon" /> },
     { id: 'text-editor', title: 'Text Editor', component: TextEditor, icon: <Type className="w-6 h-6" aria-label="Text editor icon" /> },
     { id: 'text-to-image', title: 'Text to Image', component: TextToImage, icon: <Wand2 className="w-6 h-6" aria-label="Text to image icon" /> },
+    { id: 'transcript', title: 'Video Transcript', component: VideoTranscript, icon: <FileText className="w-6 h-6" aria-label="Video transcript icon" /> },
 ]
 
 export function Editor() {
